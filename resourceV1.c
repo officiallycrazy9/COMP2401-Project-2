@@ -31,6 +31,7 @@ void resource_create(Resource **resource, const char *name, int amount, int max_
 
     (*resource)->amount = amount;
     (*resource)->max_capacity = max_capacity;
+    sem_init(&(*resource)->mutex, 0, 1);
 }
 
 /**

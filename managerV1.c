@@ -201,4 +201,12 @@ void display_simulation_state(Manager *manager) {
     // Flush the output to ensure it appears immediately
     fflush(stdout);
 }
+void *man_thread(void *arg){
+	Manager *manager = (Manager *)arg;
+	while(manager->simulation_running){ //while a simulation is running (not 0)
+		manager_run(manager); //run the manager 
+	}
+	return NULL; 
+
+}
 

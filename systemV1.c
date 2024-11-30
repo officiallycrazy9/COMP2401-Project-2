@@ -111,6 +111,7 @@ void system_run(System *system) {
  * @return                         `STATUS_OK` if successful, or an error status code.
  */
 static int system_convert(System *system) {
+	sem_wait(&system->consumed.resource->mutex);
     int status;
     Resource *consumed_resource = system->consumed.resource;
     int amount_consumed = system->consumed.amount;
@@ -138,7 +139,7 @@ static int system_convert(System *system) {
             system->amount_stored = 0;
         }
     }
-
+	sem_wait(&system->consumed.resource->mutex);
     return status;
 }
 
@@ -181,12 +182,14 @@ static void system_simulate_process_time(System *system) {
  * @return                                 `STATUS_OK` if all resources were stored, or `STATUS_CAPACITY` if not all could be stored.
  */
 static int system_store_resources(System *system) {
+	sem_wait(&system->produced.resource->mutex);
     Resource *produced_resource = system->produced.resource;
     int available_space, amount_to_store;
 
     // We can always proceed if there's nothing to store
     if (produced_resource == NULL || system->amount_stored == 0) {
         system->amount_stored = 0;
+        sem_wait(&system->produced.resource->mutex);
         return STATUS_OK;
     }
 
@@ -206,12 +209,19 @@ static int system_store_resources(System *system) {
     }
 
     if (system->amount_stored != 0) {
+    	sem_wait(&system->produced.resource->mutex);
         return STATUS_CAPACITY;
     }
-
+	sem_wait(&system->produced.resource->mutex);
     return STATUS_OK;
 }
-
+void *sys_thread(void *arg){ 
+	System *system = (System *)arg;
+	while(system->status != TERMINATE){
+		system_run(system); //if the status is not 0, run the system 
+	}
+	return NULL; 
+}
 
 /**
  * Initializes the `SystemArray`.

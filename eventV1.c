@@ -37,6 +37,7 @@ void event_queue_init(EventQueue *queue) {
 	if (!queue) return;
     queue->head = NULL;
     queue->size = 0;
+    sem_init(&queue->mutex, 0, 1);
 }
 
 /**
@@ -59,6 +60,7 @@ void event_queue_clean(EventQueue *queue) {
     }
     queue->head = NULL;
     queue->size = 0;
+    sem_destroy(&queue->mutex);
 }
 
 /**
@@ -70,6 +72,7 @@ void event_queue_clean(EventQueue *queue) {
  * @param[in]     event  Pointer to the `Event` to push onto the queue.
  */
 void event_queue_push(EventQueue *queue, const Event *event) {
+	sem_wait(&queue->mutex);
 	if (!queue || !event) return;
 
     EventNode *new_node = malloc(sizeof(EventNode));
@@ -90,6 +93,7 @@ void event_queue_push(EventQueue *queue, const Event *event) {
         current->next = new_node;
     }
     queue->size++;
+    sem_post(&queue->mutex);
 }
 
 /**
@@ -102,15 +106,17 @@ void event_queue_push(EventQueue *queue, const Event *event) {
  * @return               Non-zero if an event was successfully popped; zero otherwise.
  */
 int event_queue_pop(EventQueue *queue, Event *event) {
+	sem_wait(&queue->mutex);
 	if (!queue || !event || !queue->head) return 0;
-
+	
     EventNode *to_remove = queue->head;
     *event = to_remove->event;
 
     queue->head = to_remove->next;
     free(to_remove);
     queue->size--;
-
+	sem_post(&queue->mutex);
     return 1;
+  
 
 }
